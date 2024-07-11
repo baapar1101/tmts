@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TMTS</title>
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+
+    <!-- Include jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- Include Select2 CSS and JS -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-beta.1/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-beta.1/dist/js/select2.min.js"></script>
+    <!-- Include Wazirmatan font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@100..900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: "Vazirmatn", sans-serif;
+            font-optical-sizing: auto;
+            font-weight: 200;
+            font-style: normal;
+            margin: 20px;
+            direction: rtl;
+            text-align: right;
+        }
+        .form-container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+            text-align: right;
+        }
+        #submit-button, #reset-button {
+            font-family: "Vazirmatn", sans-serif;
+            font-optical-sizing: auto;
+            font-weight: 500;
+            font-style: normal;
+            margin: 20px 10px 20px 0;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            width: 30%;
+            box-sizing: border-box;
+        }
+        #reset-button {
+            background-color: #6c757d;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            direction: rtl;
+            text-align: right;
+        }
+        .select2-container--default .select2-results__option {
+            direction: rtl;
+            text-align: right;
+        }
+        @media (max-width: 1000px) {
+            .form-container {
+                padding: 10px;
+            }
+            #submit-button, #reset-button {
+                width: 100%;
+            }
+        }
+        .imei-box {
+            display: none;
+            margin-top: 10px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            background-color: #f9f9f9;
+        }
+        .loader {
+            display: none; /* Initially hidden */
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1000;
+            text-align: center;
+        }
+        .loader img {
+            width: 30%;
+            height: 30%;
+            animation: spin 2s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="form-container">
+        <h1>جستجوی محصول و ثبت فاکتور</h1>
+        <form id="invoice-form">
+            <div class="form-group">
+                <label for="product-search">جستجوی محصول</label>
+                <select id="product-search" name="productSearch" style="width: 100%;"></select>
+            </div>
+            <div class="form-group">
+                <label for="buyer">خریدار</label>
+                <input type="text" id="buyer" name="buyer" required>
+            </div>
+            <div class="form-group">
+                <label for="purchase-price">فی فروش</label>
+                <input type="text" id="purchase-price" name="purchasePrice" required>
+            </div>
+            <div class="form-group">
+                <label for="invoice-number">شماره فاکتور فروش سپیدار</label>
+                <input type="text" id="invoice-number" name="invoiceNumber" required>
+            </div>
+            <button type="submit" id="submit-button">ثبت فاکتور</button>
+            <button type="button" id="reset-button">ثبت فاکتور جدید</button>
+        </form>
+        <div id="imei-box" class="imei-box"></div>
+        <div class="loader" id="loader">
+            <img src="./loading.png" alt="Loading...">
+            <div>در حال ثبت</div>
+        </div>
+    </div>
+
+    <script>
+        $(document).ready(function() {
+            // Initialize Select2 on the product search element
+            $('#product-search').select2({
+                placeholder: 'جستجوی محصول',
+                ajax: {
+                    url: '/search',
+                    dataType: 'json',
+                    delay: 250,
+                    data: function (params) {
+                        return {
+                            query: params.term // search term
+                        };
+                    },
+                    processResults: function (data) {
+                        return {
+                            results: data.map(function (item) {
+                                return {
+                                    id: item,
+                                    text: item
+                                };
+                            })
+                        };
+                    },
+                    cache: true
+                },
+                minimumInputLength: 1,
+                width: 'resolve',
+                language: {
+                    inputTooShort: function() {
+                        return 'لطفاً ۱ یا چند کاراکتر وارد کنید';
+                    },
+                    noResults: function() {
+                        return 'هیچ نتیجه‌ای یافت نشد';
+                    }
+                }
+            });
+
+            // Handle product selection change
+            $('#product-search').on('change', function() {
+                const selectedProduct = $(this).val();
+                if (selectedProduct) {
+                    $.ajax({
+                        type: 'GET',
+                        url: `/get-imei?product=${selectedProduct}`,
+                        success: function(response) {
+                            $('#imei-box').text(`IMEI: ${response.imei}`).show();
+                        },
+                        error: function(error) {
+                            $('#imei-box').text('خطا در دریافت IMEI').show();
+                        }
+                    });
+                } else {
+                    $('#imei-box').hide();
+                }
+            });
+
+            // Handle form submission
+            $('#invoice-form').on('submit', function(e) {
+                e.preventDefault();
+                $('#loader').show(); // Show the loader
+                const formData = {
+                    productSearch: $('#product-search').val(),
+                    buyer: $('#buyer').val(),
+                    purchasePrice: $('#purchase-price').val().replace(/,/g, ''), // Remove commas for submission
+                    invoiceNumber: $('#invoice-number').val()
+                };
+
+                $.ajax({
+                    type: 'POST',
+                    url: '/submit',
+                    data: JSON.stringify(formData),
+                    contentType: 'application/json',
+                    success: function(response) {
+                        $('#loader').hide(); // Hide the loader
+                        alert('فاکتور با موفقیت ثبت شد');
+                    },
+                    error: function(error) {
+                        $('#loader').hide(); // Hide the loader
+                        alert('خطا در ثبت فاکتور');
+                    }
+                });
+            });
+
+            // Handle reset button click
+            $('#reset-button').on('click', function() {
+                $('#invoice-form')[0].reset();
+                $('#product-search').val(null).trigger('change');
+                $('#imei-box').hide();
+            });
+
+            // Format currency input
+            $('#purchase-price').on('keyup', function() {
+                var value = $(this).val();
+                value = value.replace(/\D/g, ''); // Remove non-digit characters
+                value = value.replace(/\B(?=(\d{3})+(?!\d))/g, ','); // Add commas
+                $(this).val(value);
+            });
+        });
+    </script>
+</body>
+</html>
