@@ -11,7 +11,7 @@ app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, 'public'))); // Serve static files from the 'public' directory
 
 // Load credentials for Google Sheets API
-const creds = require('./superb-avatar-414713-d988b52d769b.json'); // Path to the downloaded credentials file
+const creds = require('https://tmts.storage.c2.liara.space/superb-avatar-414713-d988b52d769b.json'); // Path to the downloaded credentials file
 
 const doc = new GoogleSpreadsheet('1kZNHPF-h5ZzDETRFFq4TlDlNIC3yIytvK29G2JgVFac'); // Replace with your Google Sheets ID
 
