@@ -61,7 +61,7 @@ app.post('/submit', async (req, res) => {
     const rows = await sheet.getRows();
 
     // Find the row with the older product number
-    const selectedRow = rows.find(row => row['عنوان کالا'] === productSearch);
+    const selectedRow = rows.find(row => row['title+imei'] === productSearch);
     if (!selectedRow) {
         return res.status(400).send('Product not found');
     }
