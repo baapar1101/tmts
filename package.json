@@ -3,5 +3,8 @@
     "body-parser": "^1.20.2",
     "express": "^4.19.2",
     "google-spreadsheet": "^3.3.0"
+  },
+  "scripts": {
+    "start": "npm install node server.js"
   }
 }
