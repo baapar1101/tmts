@@ -5,6 +5,6 @@
     "google-spreadsheet": "^3.3.0"
   },
   "scripts": {
-    "start": "npm install node server.js"
+    "start": "set PORT=3000 && npm install node server.js"
   }
 }
