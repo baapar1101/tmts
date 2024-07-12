@@ -6,6 +6,7 @@ const fs = require('fs');
 const app = express();
 const port = 3000;
 
+
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, 'public'))); // Serve static files from the 'public' directory
 
