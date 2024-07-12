@@ -34,7 +34,7 @@ app.get('/search', async (req, res) => {
     // Ensure correct column name referencing
     const uniqueDescriptions = [...new Set(rows
         .filter(row => !row['فی فروش']) // Filter out rows where 'خریدار' is not empty
-        .map(row => row['عنوان کالا'])
+        .map(row => row['title+imei'])
         .filter(desc => desc && desc.includes(query)))];
     
     res.json(uniqueDescriptions);
