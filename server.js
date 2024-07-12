@@ -15,7 +15,7 @@ app.use(express.static(path.join(__dirname, 'public'))); // Serve static files f
 const doc = new GoogleSpreadsheet('1kZNHPF-h5ZzDETRFFq4TlDlNIC3yIytvK29G2JgVFac'); // Replace with your Google Sheets ID
 
 // Initialize Google Sheets
-async function initGoogleSheets() {
+async function accessSpreadsheet() {
     await doc.useServiceAccountAuth({
         client_email: "tmts-690@superb-avatar-414713.iam.gserviceaccount.com",
         private_key: pk.replace(/\\n/g, '\n'),
@@ -26,43 +26,56 @@ async function initGoogleSheets() {
 // Search for product descriptions
 app.get('/search', async (req, res) => {
     const query = req.query.query;
-    await initGoogleSheets();
-    const sheet = doc.sheetsByIndex[0]; // Assuming the data is in the first sheet
-    const rows = await sheet.getRows();
-
-    // Ensure correct column name referencing
-    const uniqueDescriptions = [...new Set(rows
-        .filter(row => !row['فی فروش']) // Filter out rows where 'خریدار' is not empty
-        .map(row => row['عنوان کالا'])
-        .filter(desc => desc && desc.includes(query)))];
-    
-    res.json(uniqueDescriptions);
-});
-
-// Get IMEI for a selected product
-app.get('/get-imei', async (req, res) => {
-    const product = req.query.product;
-    await initGoogleSheets();
+    await accessSpreadsheet();
     const sheet = doc.sheetsByIndex[0];
     const rows = await sheet.getRows();
 
-    const selectedRow = rows.find(row => row['عنوان کالا'] === product);
-    if (!selectedRow) {
-        return res.status(404).send('Product not found');
-    }
+    const results = rows
+        .filter(row => (row['عنوان کالا'].includes(query) || row['IMEI 1'].includes(query)) && !row['خریدار'])
+        .map(row => {
+            console.log(`Found product: ${row['عنوان کالا']} with IMEI: ${row['IMEI 1']}`);
+            return {
+                productName: row['عنوان کالا'],
+                imei: row['IMEI 1']
+            };
+        });
 
-    res.json({ imei: selectedRow['IMEI 1'] });
+    console.log('Search results:', results);
+    res.json(results);
 });
 
-// Submit new invoice
+app.get('/get-product', async (req, res) => {
+    const imei = req.query.imei;
+    await accessSpreadsheet();
+    const sheet = doc.sheetsByIndex[0];
+    const rows = await sheet.getRows();
+
+    const product = rows.find(row => row['IMEI 1'] === imei);
+
+    if (product) {
+        console.log(`Product details for IMEI ${imei}:`, {
+            productName: product['عنوان کالا'],
+            imei: product['IMEI 1']
+        });
+        res.json({
+            productName: product['عنوان کالا'],
+            imei: product['IMEI 1']
+        });
+    } else {
+        console.error('Product not found for IMEI:', imei);
+        res.status(404).send('Product not found');
+    }
+});
+
 app.post('/submit', async (req, res) => {
     const { productSearch, buyer, purchasePrice, invoiceNumber } = req.body;
-    await initGoogleSheets();
+    await accessSpreadsheet();
     const sheet = doc.sheetsByIndex[0];
     const rows = await sheet.getRows();
 
+
     // Find the row with the older product number
-    const selectedRow = rows.find(row => row['عنوان کالا'] === productSearch);
+    const selectedRow = rows.find(row =>  row['IMEI 1'] === productSearch);
     if (!selectedRow) {
         return res.status(400).send('Product not found');
     }
@@ -76,11 +89,6 @@ app.post('/submit', async (req, res) => {
     res.status(200).send('Invoice registered successfully');
 });
 
-// Serve the HTML file
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
 app.listen(port, () => {
-    console.log(`Server running at http://localhost:${port}`);
+    console.log(`Server is running on port ${port}`);
 });

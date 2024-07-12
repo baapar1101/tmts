@@ -134,6 +134,8 @@
 
     <script>
         $(document).ready(function() {
+            let selectedProduct = {};
+    
             // Initialize Select2 on the product search element
             $('#product-search').select2({
                 placeholder: 'جستجوی محصول',
@@ -150,8 +152,8 @@
                         return {
                             results: data.map(function (item) {
                                 return {
-                                    id: item,
-                                    text: item
+                                    id: item.imei,
+                                    text: `${item.productName} - ${item.imei}`
                                 };
                             })
                         };
@@ -169,53 +171,52 @@
                     }
                 }
             });
-
-            // Handle product selection change
+    
+            // Handle selection change
             $('#product-search').on('change', function() {
-                const selectedProduct = $(this).val();
-                if (selectedProduct) {
-                    $.ajax({
-                        type: 'GET',
-                        url: `/get-imei?product=${selectedProduct}`,
-                        success: function(response) {
-                            $('#imei-box').text(`IMEI: ${response.imei}`).show();
-                        },
-                        error: function(error) {
-                            $('#imei-box').text('خطا در دریافت IMEI').show();
-                        }
-                    });
-                } else {
-                    $('#imei-box').hide();
-                }
+                const imei = $(this).val();
+                $.ajax({
+                    url: `/get-product?imei=${imei}`,
+                    method: 'GET',
+                    success: function(data) {
+                        selectedProduct = data;
+                        $('#imei-box').html(`محصول انتخاب شده: ${data.productName}<br>IMEI: ${data.imei}`).show();
+                    },
+                    error: function() {
+                        $('#imei-box').text('خطا در دریافت IMEI').show();
+                    }
+                });
             });
-
+    
             // Handle form submission
             $('#invoice-form').on('submit', function(e) {
                 e.preventDefault();
-                $('#loader').show(); // Show the loader
+                $('#loader').show();
+    
                 const formData = {
-                    productSearch: $('#product-search').val(),
+                    productSearch: selectedProduct.imei,
+                    productName: selectedProduct.productName,
                     buyer: $('#buyer').val(),
-                    purchasePrice: $('#purchase-price').val().replace(/,/g, ''), // Remove commas for submission
+                    purchasePrice: $('#purchase-price').val(),
                     invoiceNumber: $('#invoice-number').val()
                 };
-
+    
                 $.ajax({
-                    type: 'POST',
                     url: '/submit',
-                    data: JSON.stringify(formData),
+                    method: 'POST',
                     contentType: 'application/json',
-                    success: function(response) {
-                        $('#loader').hide(); // Hide the loader
+                    data: JSON.stringify(formData),
+                    success: function() {
+                        $('#loader').hide();
                         alert('فاکتور با موفقیت ثبت شد');
                     },
-                    error: function(error) {
-                        $('#loader').hide(); // Hide the loader
+                    error: function() {
+                        $('#loader').hide();
                         alert('خطا در ثبت فاکتور');
                     }
                 });
             });
-
+    
             // Handle reset button click
             $('#reset-button').on('click', function() {
                 $('#invoice-form')[0].reset();
