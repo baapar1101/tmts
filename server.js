@@ -33,7 +33,7 @@ app.get('/search', async (req, res) => {
     // Ensure correct column name referencing
     const uniqueDescriptions = [...new Set(rows
         .filter(row => !row['فی فروش']) // Filter out rows where 'خریدار' is not empty
-        .map(row => row['title+imei'])
+        .map(row => row['عنوان کالا'])
         .filter(desc => desc && desc.includes(query)))];
     
     res.json(uniqueDescriptions);
@@ -46,7 +46,7 @@ app.get('/get-imei', async (req, res) => {
     const sheet = doc.sheetsByIndex[0];
     const rows = await sheet.getRows();
 
-    const selectedRow = rows.find(row => row['title+imei'] === product);
+    const selectedRow = rows.find(row => row['عنوان کالا'] === product);
     if (!selectedRow) {
         return res.status(404).send('Product not found');
     }
@@ -62,7 +62,7 @@ app.post('/submit', async (req, res) => {
     const rows = await sheet.getRows();
 
     // Find the row with the older product number
-    const selectedRow = rows.find(row => row['title+imei'] === productSearch);
+    const selectedRow = rows.find(row => row['عنوان کالا'] === productSearch);
     if (!selectedRow) {
         return res.status(400).send('Product not found');
     }
