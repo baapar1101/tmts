@@ -44,7 +44,7 @@ app.get('/search', async (req, res) => {
     res.json(results);
 });
 
-app.get('/get-product', async (req, res) => {
+app.get('/get-imei', async (req, res) => {
     const imei = req.query.imei;
     await accessSpreadsheet();
     const sheet = doc.sheetsByIndex[0];
@@ -66,8 +66,135 @@ app.get('/get-product', async (req, res) => {
         res.status(404).send('Product not found');
     }
 });
+// Get products
+app.get('/get-products', async (req, res) => {
+    await accessSpreadsheet();
+    const sheet = doc.sheetsByIndex[1]; // Sheet 2 = Products
+    const rows = await sheet.getRows();
+    const products = rows.map(row => ({
+        title: row['عنوان کالا']
+    }));
+    res.json(products);
+});
 
-app.post('/submit', async (req, res) => {
+// Get sellers
+app.get('/get-vendors', async (req, res) => {
+    await accessSpreadsheet();
+    const sheet = doc.sheetsByIndex[2]; // Sheet 3 = Sellers
+    const rows = await sheet.getRows();
+    const sellers = rows.map(row => ({
+        name: row['نام فروشنده']
+    }));
+    res.json(sellers);
+});
+
+// Get buyers
+app.get('/get-buyers', async (req, res) => {
+    await accessSpreadsheet();
+    const sheet = doc.sheetsByIndex[3]; // Sheet 4 = Buyers
+    const rows = await sheet.getRows();
+    const buyers = rows.map(row => ({
+        name: row['نام خریدار']
+    }));
+    res.json(buyers);
+});
+
+// Get purchase invoices
+app.get('/get-purchase-invoices', async (req, res) => {
+    await accessSpreadsheet();
+    const sheet = doc.sheetsByIndex[0]; // Sheet 1 = Invoices
+    const rows = await sheet.getRows();
+    const purchaseInvoices = rows.filter(row => row['فی خرید']).map(row => ({
+        product: row['نام محصول'],
+        seller: row['فروشنده'],
+        date: row['تاریخ'],
+        price: row['فی خرید']
+    }));
+    res.json(purchaseInvoices);
+});
+
+// Get sales invoices
+app.get('/get-sales-invoices', async (req, res) => {
+    await accessSpreadsheet();
+    const sheet = doc.sheetsByIndex[0]; // Sheet 1 = Invoices
+    const rows = await sheet.getRows();
+    const salesInvoices = rows.filter(row => row['فی فروش']).map(row => ({
+        product: row['نام محصول'],
+        buyer: row['خریدار'],
+        date: row['تاریخ'],
+        price: row['فی فروش']
+    }));
+    res.json(salesInvoices);
+});
+
+//  invoices
+app.get('/get-invoices', async (req, res) => {
+    await accessSpreadsheet();
+    const sheet = doc.sheetsByIndex[0]; // Sheet 1 = Invoices
+    const rows = await sheet.getRows();
+    const salesInvoices = rows.filter(row => row['فی فروش']).map(row => ({
+        product: row['نام محصول'],
+        buyer: row['خریدار'],
+        date: row['تاریخ'],
+        seller: row['فروشنده'],
+        date: row['تاریخ'],
+        price: row['فی خرید'],
+        purchasePrice: row['فی فروش']
+    }));
+    res.json(salesInvoices);
+});
+
+// Submit a product
+app.post('/submit-product', async (req, res) => {
+    const { title, imei1, imei2 } = req.body;
+    await accessSpreadsheet();
+    const sheet = doc.sheetsByIndex[1]; // Sheet 2 = Products
+    await sheet.addRow({
+        'عنوان کالا': title,
+        'IMEI 1': imei1,
+        'IMEI 2': imei2
+    });
+    res.send('Product added');
+});
+
+// Submit a seller
+app.post('/submit-seller', async (req, res) => {
+    const { name } = req.body;
+    await accessSpreadsheet();
+    const sheet = doc.sheetsByIndex[2]; // Sheet 3 = Sellers
+    await sheet.addRow({
+        'نام فروشنده': name
+    });
+    res.send('Seller added');
+});
+
+// Submit a buyer
+app.post('/submit-buyer', async (req, res) => {
+    const { name } = req.body;
+    await accessSpreadsheet();
+    const sheet = doc.sheetsByIndex[3]; // Sheet 4 = Buyers
+    await sheet.addRow({
+        'نام خریدار': name
+    });
+    res.send('Buyer added');
+});
+
+// Submit a purchase invoice
+app.post('/submit-purchase-invoice', async (req, res) => {
+    const { product, seller, date, price } = req.body;
+    await accessSpreadsheet();
+    const sheet = doc.sheetsByIndex[0]; // Sheet 1 = Invoices
+    await sheet.addRow({
+        'عنوان کالا': product,
+        'فروشنده': seller,
+        'تاریخ فاکتور': date,
+        'فی خرید': price
+    });
+    res.send('Purchase invoice added');
+});
+
+// Submit a sales invoice
+app.post('/submit-sales-invoice', async (req, res) => {
     const { productSearch, buyer, purchasePrice, invoiceNumber } = req.body;
     await accessSpreadsheet();
     const sheet = doc.sheetsByIndex[0];
@@ -90,5 +217,5 @@ app.post('/submit', async (req, res) => {
 });
 
 app.listen(port, () => {
-    console.log(`Server is running on port ${port}`);
+    console.log(`Server running at http://localhost:${port}`);
 });
